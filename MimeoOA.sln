@@ -1,0 +1,58 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26430.4
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abp", "Abp\Abp.csproj", "{0A97D563-02C1-4230-9804-C1450247FE87}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abp.EntityFrameworkCore", "Abp.EntityFrameworkCore\Abp.EntityFrameworkCore.csproj", "{F36D8969-1FFB-4B04-B6AF-18F6E5AEC194}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abp.DoNetCore", "Abp.DoNetCore\Abp.DoNetCore.csproj", "{FFAD315B-7185-407E-91D8-700346C4B4AD}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MimeoOAWeb", "MimeoOAWeb\MimeoOAWeb.csproj", "{A59F40F2-D24D-4041-8A18-21695E0D5C0A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abp.AutoMapper", "Abp.AutoMapper\Abp.AutoMapper.csproj", "{F3B632FA-2965-42F3-B3BB-FBD704996D2E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abp.RedisCache", "Abp.RedisCache\Abp.RedisCache.csproj", "{752360B0-956D-4DA3-B114-529482660418}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "XUnitTestMimeoOAWeb", "XUnitTestMimeoOAWeb\XUnitTestMimeoOAWeb.csproj", "{FEF04987-A26C-4B21-8769-F65792E7CEAD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0A97D563-02C1-4230-9804-C1450247FE87}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0A97D563-02C1-4230-9804-C1450247FE87}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0A97D563-02C1-4230-9804-C1450247FE87}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0A97D563-02C1-4230-9804-C1450247FE87}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F36D8969-1FFB-4B04-B6AF-18F6E5AEC194}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F36D8969-1FFB-4B04-B6AF-18F6E5AEC194}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F36D8969-1FFB-4B04-B6AF-18F6E5AEC194}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F36D8969-1FFB-4B04-B6AF-18F6E5AEC194}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FFAD315B-7185-407E-91D8-700346C4B4AD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FFAD315B-7185-407E-91D8-700346C4B4AD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FFAD315B-7185-407E-91D8-700346C4B4AD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FFAD315B-7185-407E-91D8-700346C4B4AD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A59F40F2-D24D-4041-8A18-21695E0D5C0A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A59F40F2-D24D-4041-8A18-21695E0D5C0A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A59F40F2-D24D-4041-8A18-21695E0D5C0A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A59F40F2-D24D-4041-8A18-21695E0D5C0A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3B632FA-2965-42F3-B3BB-FBD704996D2E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3B632FA-2965-42F3-B3BB-FBD704996D2E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3B632FA-2965-42F3-B3BB-FBD704996D2E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3B632FA-2965-42F3-B3BB-FBD704996D2E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{752360B0-956D-4DA3-B114-529482660418}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{752360B0-956D-4DA3-B114-529482660418}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{752360B0-956D-4DA3-B114-529482660418}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{752360B0-956D-4DA3-B114-529482660418}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FEF04987-A26C-4B21-8769-F65792E7CEAD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FEF04987-A26C-4B21-8769-F65792E7CEAD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FEF04987-A26C-4B21-8769-F65792E7CEAD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FEF04987-A26C-4B21-8769-F65792E7CEAD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
