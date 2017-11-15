@@ -1,5 +1,6 @@
 # Mimeo Office Auto System
 
+It base on the ABP Framework to overwrite, and please refrence the ABP https://github.com/aspnetboilerplate/aspnetboilerplate
 
 ## How to create a new special Repository
 
