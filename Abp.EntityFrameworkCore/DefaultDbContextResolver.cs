@@ -13,51 +13,50 @@ namespace Abp.EntityFrameworkCore
 {
     public class DefaultDbContextResolver<TDbContext> : IDbContextResolver where TDbContext : DbContext
     {
-        //private readonly ThreadLocal<Dictionary<DBSelector, DbContext>> CacheDbContext = new ThreadLocal<Dictionary<DBSelector, DbContext>>(() => new Dictionary<DBSelector, DbContext>());
-        private readonly Dictionary<DBSelector, DbContext> CacheDbContext = new Dictionary<DBSelector, DbContext>();
-        private readonly Dictionary<int, DbContext> SlaveCacheDbContext = new Dictionary<int, DbContext>();
-        private readonly IAbpDbContextConfigurer<TDbContext> dbContextConfigurer;
-        private readonly EFCoreDataBaseOptions dbOptions;
+        private readonly Dictionary<DBSelector, DbContext> _cacheDbContext = new Dictionary<DBSelector, DbContext>();
+        private readonly Dictionary<int, DbContext> _slaveCacheDbContext = new Dictionary<int, DbContext>();
+        private readonly IAbpDbContextConfigurer<TDbContext> _dbContextConfigurer;
+        private readonly EFCoreDataBaseOptions _dbOptions;
         public DefaultDbContextResolver(IAbpDbContextConfigurer<TDbContext> dbContextConfigurer, IOptions<EFCoreDataBaseOptions> dbOptions)
         {
-            this.dbContextConfigurer = dbContextConfigurer;
-            this.dbOptions = dbOptions.Value;
+            this._dbContextConfigurer = dbContextConfigurer;
+            this._dbOptions = dbOptions.Value;
         }
         public DbContext Resolve(DBSelector dbSelector = DBSelector.Master)
         {
             DbContext dbContext = null;
             if (dbSelector.Equals(DBSelector.Master))
             {
-                CacheDbContext.TryGetValue(dbSelector, out dbContext);
+                _cacheDbContext.TryGetValue(dbSelector, out dbContext);
             }
             //ISSUE:A second operation started on this context before a previous operation completed. Any instance members are not guaranteed to be thread safe
             //We do it in temprary, we must optimzie the Framewrok to resolve the multiple thread to call DbContext.
             else
             {
-                SlaveCacheDbContext.TryGetValue(Thread.CurrentThread.ManagedThreadId, out dbContext);
+                _slaveCacheDbContext.TryGetValue(Thread.CurrentThread.ManagedThreadId, out dbContext);
             }
             if (dbContext != null)
             {
                 return dbContext;
             }
-            var configurer = new AbpDbContextConfiguration<TDbContext>(dbOptions.DbConnections[dbSelector]);
-            dbContextConfigurer.Configure(configurer);
+            var configurer = new AbpDbContextConfiguration<TDbContext>(_dbOptions.DbConnections[dbSelector]);
+            _dbContextConfigurer.Configure(configurer);
             var actualContext = typeof(TDbContext);
             dbContext = (DbContext)Activator.CreateInstance(actualContext, configurer.DbContextOptions.Options);
             if (dbSelector.Equals(DBSelector.Master))
             {
-                CacheDbContext.Add(dbSelector, dbContext);
+                _cacheDbContext.Add(dbSelector, dbContext);
             }
             else
             {
-                SlaveCacheDbContext.Add(Thread.CurrentThread.ManagedThreadId, dbContext);
+                _slaveCacheDbContext.Add(Thread.CurrentThread.ManagedThreadId, dbContext);
             }
            
             return dbContext;
         }
         public void Dispose()
         {
-            foreach (var item in CacheDbContext)
+            foreach (var item in _cacheDbContext)
             {
                 if (item.Value.Database.CurrentTransaction != null)
                 {
@@ -65,12 +64,12 @@ namespace Abp.EntityFrameworkCore
                 }
                 item.Value.Dispose();
             }
-            foreach (var item in SlaveCacheDbContext)
+            foreach (var item in _slaveCacheDbContext)
             {
                 item.Value.Dispose();
             }
-            CacheDbContext.Clear();
-            SlaveCacheDbContext.Clear();
+            _cacheDbContext.Clear();
+            _slaveCacheDbContext.Clear();
         }
     }
 }

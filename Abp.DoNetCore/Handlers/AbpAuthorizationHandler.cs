@@ -11,10 +11,10 @@ namespace Abp.DoNetCore.Handlers
 {
     public class AbpAuthorizationHandler : AuthorizationHandler<JwtUserAhtorizationRequirement>
     {
-        private readonly IUserAppService userService;
+        private readonly IUserAppService _userService;
         public AbpAuthorizationHandler(IUserAppService userService)
         {
-            this.userService = userService;
+            _userService = userService;
         }
         protected override async Task HandleRequirementAsync(AuthorizationHandlerContext context, JwtUserAhtorizationRequirement requirement)
         {
@@ -23,7 +23,7 @@ namespace Abp.DoNetCore.Handlers
                 return;
             }
             var accountClaim = context.User.FindFirst(c => c.Type == "MimeoUser" && c.Issuer == "SuperAwesomeTokenServer");
-            var currentUser = await this.userService.GetUserInformationsAsync(accountClaim.Value);
+            var currentUser = await _userService.GetUserInformationsAsync(accountClaim.Value);
             context.User.AddIdentity(new MimeoOAIdentity(currentUser));
             context.Succeed(requirement);
         }

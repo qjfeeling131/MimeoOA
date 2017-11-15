@@ -8,7 +8,7 @@ using System;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace XUnitTestMimeoOAWeb
+namespace XUtniTestWeb
 {
     public class TestAccount
     {

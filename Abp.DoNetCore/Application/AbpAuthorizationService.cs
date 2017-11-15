@@ -16,11 +16,11 @@ namespace Abp.DoNetCore.Application
 {
     public class AbpAuthorizationService : IAbpAuthorizationService
     {
-        private readonly IUserAppService userAppService;
+        private readonly IUserAppService _userAppService;
         private readonly JwtIssuerOptions _jwtOptions;
         public AbpAuthorizationService(IUserAppService userAppService, IOptions<JwtIssuerOptions> jwtOptions)
         {
-            this.userAppService = userAppService;
+            _userAppService = userAppService;
             _jwtOptions = jwtOptions.Value;
         }
         public async Task<RESTResult> AuthorizationUser(ApplicationUser userInfo)
@@ -30,7 +30,7 @@ namespace Abp.DoNetCore.Application
                 Code = RESTStatus.Success,
                 Message = "Get the token successfully"
             };
-            var userInfoCorrect = await userAppService.AuthorizationOfUser(userInfo);
+            var userInfoCorrect = await _userAppService.AuthorizationOfUser(userInfo);
             if (!userInfoCorrect)
             {
                 result.Code = RESTStatus.Failed;
@@ -41,11 +41,6 @@ namespace Abp.DoNetCore.Application
             result.Data = await ProductedMimeoOAToken(userInfo.AccountName);
             return result;
         }
-
-        //public async Task<RESTResult> AuthorizationUploadPermission()
-        //{
-        //    return;
-        //}
 
         private async Task<string> ProductedMimeoOAToken(string userName)
         {

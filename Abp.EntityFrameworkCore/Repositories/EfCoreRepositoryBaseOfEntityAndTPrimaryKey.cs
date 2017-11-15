@@ -10,10 +10,10 @@ namespace Abp.EntityFrameworkCore.Repositories
 {
     public class EfCoreRepositoryBase<TEntity> : AbpRepositoryBase<TEntity, Guid> where TEntity : class, IEntity<Guid>
     {
-        public virtual DbContext Context { get { return _dbContextProvider.Resolve(dbSelector); } }
+        public virtual DbContext Context { get { return _dbContextProvider.Resolve(_dbSelector); } }
         public virtual DbSet<TEntity> Table { get { return Context.Set<TEntity>(); } }
         private readonly IDbContextResolver _dbContextProvider;
-        private DBSelector dbSelector { get; set; }
+        private DBSelector _dbSelector { get; set; }
         public EfCoreRepositoryBase(IDbContextResolver dbContextProvider)
         {
             _dbContextProvider = dbContextProvider;
@@ -54,7 +54,7 @@ namespace Abp.EntityFrameworkCore.Repositories
 
         public override IQueryable<TEntity> GetAll()
         {
-            dbSelector = DBSelector.Slave;
+            _dbSelector = DBSelector.Slave;
             throw new NotImplementedException();
         }
 

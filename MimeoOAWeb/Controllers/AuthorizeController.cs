@@ -16,17 +16,17 @@ namespace MimeoOAWeb.Controllers
     
     public class AuthorizeController : BaseController
     {
-        private readonly IAbpAuthorizationService authorizationService;
+        private readonly IAbpAuthorizationService _authorizationService;
         public AuthorizeController(IAbpAuthorizationService authorizationService)
         {
-            this.authorizationService = authorizationService;
+            _authorizationService = authorizationService;
         }
 
         [HttpPost]
         [AllowAnonymous]
         public async Task<IActionResult> AuthorizeUser([FromBody]ApplicationUser user)
         {
-            return Ok(await this.authorizationService.AuthorizationUser(user));
+            return Ok(await _authorizationService.AuthorizationUser(user));
         }
         
         [HttpGet]
@@ -34,7 +34,7 @@ namespace MimeoOAWeb.Controllers
         [PermissionFilter(PermissionCondition.And, SystemPermission.Sys_Write, SystemPermission.Sys_UploadPage)]
         public async Task<IActionResult> AuthroizateUpload()
         {
-            return Ok(this.CurrentUser);
+            return Ok(CurrentUser);
         }
     }
 }

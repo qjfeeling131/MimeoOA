@@ -16,6 +16,7 @@ namespace Abp.DoNetCore
         public override void Initialize(ContainerBuilder builder)
         {
             Register<IUserAppService, UserAppService>(builder, Dependency.DependencyLifeStyle.Transient);
+            Register<IDigitalAssetService, DigitalAssetService>(builder, Dependency.DependencyLifeStyle.Transient);
             Register<IAbpAuthorizationService, AbpAuthorizationService>(builder, Dependency.DependencyLifeStyle.Transient);
         }
 

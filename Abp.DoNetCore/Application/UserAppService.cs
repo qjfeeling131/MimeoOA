@@ -21,28 +21,28 @@ namespace Abp.DoNetCore.Application
 {
     public class UserAppService : DomainService, IUserAppService
     {
-        private readonly IRepository<User> userRepository;
-        private readonly IRepository<UserInfo> userInfoRepository;
-        private readonly IRepository<Role> roleRepository;
-        private readonly IRepository<UserRole> userRoleRepository;
-        private readonly IRepository<RolePermission> rolePermissionRepository;
-        private readonly IRepository<Permission> permissionRepository;
-        private readonly IRepository<Department> departmentReposiotry;
-        private readonly IRepository<UserDepartment> userDepartmentReposiotry;
-        private readonly ICache redisCache;
-        private readonly IExtendedXmlSerializer serializer;
+        private readonly IRepository<User> _userRepository;
+        private readonly IRepository<UserInfo> _userInfoRepository;
+        private readonly IRepository<Role> _roleRepository;
+        private readonly IRepository<UserRole> _userRoleRepository;
+        private readonly IRepository<RolePermission> _rolePermissionRepository;
+        private readonly IRepository<Permission> _permissionRepository;
+        private readonly IRepository<Department> _departmentReposiotry;
+        private readonly IRepository<UserDepartment> _userDepartmentReposiotry;
+        private readonly ICache _redisCache;
+        private readonly IExtendedXmlSerializer _serializer;
         public UserAppService(IRepository<User> userRepository, IRepository<UserInfo> userInfoRepository, IRepository<Role> roleRepository, IRepository<UserRole> userRoleRepository, IRepository<RolePermission> rolePermissionRepository, IRepository<Permission> permissionRepository, IRepository<Department> departmentReposiotry, IRepository<UserDepartment> userDepartmentReposiotry, ICache cache, IExtendedXmlSerializer serializer)
         {
-            this.userRepository = userRepository;
-            this.userInfoRepository = userInfoRepository;
-            this.roleRepository = roleRepository;
-            this.userRoleRepository = userRoleRepository;
-            this.rolePermissionRepository = rolePermissionRepository;
-            this.permissionRepository = permissionRepository;
-            this.departmentReposiotry = departmentReposiotry;
-            this.userDepartmentReposiotry = userDepartmentReposiotry;
-            this.redisCache = cache;
-            this.serializer = serializer;
+            _userRepository = userRepository;
+            _userInfoRepository = userInfoRepository;
+            _roleRepository = roleRepository;
+            _userRoleRepository = userRoleRepository;
+            _rolePermissionRepository = rolePermissionRepository;
+            _permissionRepository = permissionRepository;
+            _departmentReposiotry = departmentReposiotry;
+            _userDepartmentReposiotry = userDepartmentReposiotry;
+            _redisCache = cache;
+            _serializer = serializer;
         }
 
         #region User
@@ -60,7 +60,7 @@ namespace Abp.DoNetCore.Application
             if (isAdd)
             {
                 //Check the user whteher exist in User
-                var userEntities = await this.userRepository.GetAllListAsync(item => item.AccountEmail.Equals(input.AccountEmail) || item.AccountCode.Equals(input.AccountCode) || item.AccountPhone.Equals(input.AccountPhone));
+                var userEntities = await _userRepository.GetAllListAsync(item => item.AccountEmail.Equals(input.AccountEmail) || item.AccountCode.Equals(input.AccountCode) || item.AccountPhone.Equals(input.AccountPhone));
                 if (userEntities.Count > 0)
                 {
                     throw new ArgumentException($"The user {input.AccountEmail} {input.AccountCode} {input.AccountEmail} have been exist");
@@ -74,15 +74,15 @@ namespace Abp.DoNetCore.Application
                 userEntity.LastLoginIP = "127.0.0.1";
                 userEntity.CreateTime = DateTime.Now;
                 userEntity.LastLoginTime = DateTime.Now;
-                userEntity.Password = HashUtility.CreateHash(string.IsNullOrEmpty(input.Password) ? this.GeneralPassword(input.AccountEmail) : input.Password);
-                await this.userRepository.InsertAsync(userEntity);
+                userEntity.Password = HashUtility.CreateHash(string.IsNullOrEmpty(input.Password) ? GeneralPassword(input.AccountEmail) : input.Password);
+                await _userRepository.InsertAsync(userEntity);
                 if (input.UserInfo != null)
                 {
                     var userInfoEntity = Mapper.Map<UserInfoDataTransferObject, UserInfo>(input.UserInfo);
-                    await this.userInfoRepository.InsertAsync(userInfoEntity);
+                    await _userInfoRepository.InsertAsync(userInfoEntity);
                 }
-                await this.SetUserAndDepartmentMapAsync(currentUserId, userEntity.Id, input.DepartmentId);
-                await this.SetUserAndRoleMapAsync(currentUserId, userEntity.Id, input.RoleIds);
+                await SetUserAndDepartmentMapAsync(currentUserId, userEntity.Id, input.DepartmentId);
+                await SetUserAndRoleMapAsync(currentUserId, userEntity.Id, input.RoleIds);
                 result.Code = RESTStatus.Success;
                 result.Message = "Add user successful";
             }
@@ -93,7 +93,7 @@ namespace Abp.DoNetCore.Application
                     throw new ArgumentException("The user id can not be null");
                 }
                 //TODO:Update the User
-                var userEntity = await this.userRepository.GetAsync(id);
+                var userEntity = await _userRepository.GetAsync(id);
                 if (userEntity == null)
                 {
                     result.Message = $"The user(id is {id}) doesn't exist";
@@ -103,23 +103,30 @@ namespace Abp.DoNetCore.Application
                 userEntity.AccountPhone = input.AccountPhone;
                 userEntity.ModifyByUserId = currentUserId;
                 userEntity.ModifyTime = DateTime.Now;
-                await this.userRepository.UpdateAsync(userEntity);
+                await _userRepository.UpdateAsync(userEntity);
                 //TODO:Update the user info;
-                var userInfoEntity = (await userInfoRepository.GetAllListAsync(item => item.UserId.Equals(id))).FirstOrDefault();
+                var userInfoEntity = (await _userInfoRepository.GetAllListAsync(item => item.UserId.Equals(id))).FirstOrDefault();
                 if (userInfoEntity != null)
                 {
                     var userInfoModel = Mapper.Map<UserInfoDataTransferObject, UserInfo>(input.UserInfo);
                     userInfoModel.Id = userInfoEntity.Id;
                     userInfoModel.UserId = id;
-                    await userInfoRepository.UpdateAsync(userInfoModel);
+                    await _userInfoRepository.UpdateAsync(userInfoModel);
+                }
+                else
+                {
+                    //TODO:Add new Informations
+                    var userinfoModel = Mapper.Map<UserInfoDataTransferObject, UserInfo>(input.UserInfo);
+                    userinfoModel.UserId = userEntity.Id;
+                    await _userInfoRepository.InsertAsync(userinfoModel);
                 }
                 //
                 //TODO:Update the department;
-                await this.SetUserAndDepartmentMapAsync(currentUserId, userEntity.Id, input.DepartmentId);
+                await SetUserAndDepartmentMapAsync(currentUserId, userEntity.Id, input.DepartmentId);
                 //TODO:Remove before user role;
-                await this.RemoveBeforeUserRole(userEntity.Id);
+                await RemoveBeforeUserRole(userEntity.Id);
                 //TODO:update the role;
-                await this.SetUserAndRoleMapAsync(currentUserId, userEntity.Id, input.RoleIds);
+                await SetUserAndRoleMapAsync(currentUserId, userEntity.Id, input.RoleIds);
                 result.Code = RESTStatus.Success;
                 result.Message = "update user successful";
             }
@@ -135,16 +142,16 @@ namespace Abp.DoNetCore.Application
         /// <returns></returns>
         public async Task<UserDataTransferObject> GetUserInformationsAsync(string accountName)
         {
-            var userModel = await this.GetUserByAccountName(accountName);
+            var userModel = await GetUserByAccountName(accountName);
             var userDto = Mapper.Map<User, UserDataTransferObject>(userModel);
-            var departmentModel = await this.GetCurrentUserDepartment(userModel.Id);
+            var departmentModel = await GetCurrentUserDepartment(userModel.Id);
             userDto.Department = departmentModel != null ? Mapper.Map<Department, DepartmentDataTransferObject>(departmentModel) : null;
-            var roleModels = departmentModel != null ? await this.GetRolesWithCurrentUser(userModel.Id, departmentModel.Id) : await this.GetRolesWithCurrentUser(userModel.Id, Guid.Empty);
+            var roleModels = departmentModel != null ? await GetRolesWithCurrentUser(userModel.Id, departmentModel.Id) : await GetRolesWithCurrentUser(userModel.Id, Guid.Empty);
             foreach (var item in roleModels)
             {
                 userDto.Roles.Add(Mapper.Map<Role, RoleDataTransferObject>(item));
             }
-            var permissionModels = await this.GetCurrentUserPermissions(userModel.Id);
+            var permissionModels = await GetCurrentUserPermissions(userModel.Id);
             foreach (var item in permissionModels)
             {
                 userDto.Permissions.Add(Mapper.Map<Permission, PermissionTransferDataObject>(item));
@@ -154,8 +161,8 @@ namespace Abp.DoNetCore.Application
 
         public async Task<bool> UpdateUserAsync(ApplicationUser input)
         {
-            var userModel = await this.GetUserByAccountName(input.AccountName);
-            var result = await this.userRepository.UpdateAsync(userModel);
+            var userModel = await GetUserByAccountName(input.AccountName);
+            var result = await _userRepository.UpdateAsync(userModel);
             if (result != null)
             {
                 return true;
@@ -166,7 +173,7 @@ namespace Abp.DoNetCore.Application
         public async Task<RESTResult> RemoveUserAsync(Guid id)
         {
             RESTResult result = new RESTResult { Code = RESTStatus.Success };
-            var userModel = await this.userRepository.UpdateAsync(id, item => { item.IsDeleted = true; return userRepository.UpdateAsync(item); });
+            var userModel = await _userRepository.UpdateAsync(id, item => { item.IsDeleted = true; return _userRepository.UpdateAsync(item); });
             result.Data = Mapper.Map<User, ApplicationUser>(userModel);
             return result;
         }
@@ -179,8 +186,8 @@ namespace Abp.DoNetCore.Application
             //TODO: Super admin
             if (currentUser.Roles.Where(item => item.Level.Equals(RoleLevelStatus.SupperAdmin)).Count() > 0)
             {
-                var allUserCount = await this.userRepository.CountAsync();
-                var allUser = (await this.userRepository.GetAllListAsync()).Take(pageIndex * pageSize).Skip(pageSize * (pageIndex - 1));
+                var allUserCount = await _userRepository.CountAsync();
+                var allUser = (await _userRepository.GetAllListAsync()).Take(pageIndex * pageSize).Skip(pageSize * (pageIndex - 1));
                 allUser.ToList().ForEach(item => userDTOs.Add(Mapper.Map<User, UserDataTransferObject>(item)));
                 result.Data = new { users = userDTOs, Count = allUserCount };
                 return result;
@@ -190,14 +197,14 @@ namespace Abp.DoNetCore.Application
                 result.Code = RESTStatus.NotData;
                 return result;
             }
-            var allUserIds = await this.userDepartmentReposiotry.GetAllListAsync(item => item.DepartmentId.Equals(currentUser.Department.Id));
-            var userModels = this.userRepository.GetAllList(item => allUserIds.Select(c => c.UserId).Contains(item.Id) && item.IsDeleted.Equals(false)).Take(pageIndex * pageSize).Skip(pageSize * (pageIndex - 1));
+            var allUserIds = await _userDepartmentReposiotry.GetAllListAsync(item => item.DepartmentId.Equals(currentUser.Department.Id));
+            var userModels = _userRepository.GetAllList(item => allUserIds.Select(c => c.UserId).Contains(item.Id) && item.IsDeleted.Equals(false)).Take(pageIndex * pageSize).Skip(pageSize * (pageIndex - 1));
             //TODO:Mapping, DOT NOT USE THE .ToList()
             foreach (var item in userModels)
             {
                 userDTOs.Add(Mapper.Map<User, UserDataTransferObject>(item));
             }
-            var userCount = await this.userRepository.CountAsync(item => item.IsDeleted.Equals(false));
+            var userCount = await _userRepository.CountAsync(item => item.IsDeleted.Equals(false));
             result.Data = new { users = userDTOs, Count = userCount };
             return result;
         }
@@ -210,25 +217,25 @@ namespace Abp.DoNetCore.Application
             {
                 throw new ArgumentException("the user id can not be null");
             }
-            var userModel = await this.userRepository.GetAsync(userId);
+            var userModel = await _userRepository.GetAsync(userId);
             if (userModel.IsDeleted)
             {
                 throw new ArgumentException($"the current user{userModel.AccountCode} have been removed");
             }
             var userDataObject = Mapper.Map<User, UserDataTransferObject>(userModel);
-            var departmentModel = await this.GetCurrentUserDepartment(userModel.Id);
-            var userInfoModel = (await this.userInfoRepository.GetAllListAsync(item => item.UserId.Equals(userId))).FirstOrDefault();
+            var departmentModel = await GetCurrentUserDepartment(userModel.Id);
+            var userInfoModel = (await _userInfoRepository.GetAllListAsync(item => item.UserId.Equals(userId))).FirstOrDefault();
             if (userInfoModel != null)
             {
                 userDataObject.UserInfo = Mapper.Map<UserInfo, UserInfoDataTransferObject>(userInfoModel);
             }
             userDataObject.Department = departmentModel != null ? Mapper.Map<Department, DepartmentDataTransferObject>(departmentModel) : null;
-            var roleModels = departmentModel != null ? await this.GetRolesWithCurrentUser(userModel.Id, departmentModel.Id) : await this.GetRolesWithCurrentUser(userModel.Id, Guid.Empty);
+            var roleModels = departmentModel != null ? await GetRolesWithCurrentUser(userModel.Id, departmentModel.Id) : await GetRolesWithCurrentUser(userModel.Id, Guid.Empty);
             foreach (var item in roleModels)
             {
                 userDataObject.Roles.Add(Mapper.Map<Role, RoleDataTransferObject>(item));
             }
-            var permissionModels = await this.GetCurrentUserPermissions(userModel.Id);
+            var permissionModels = await GetCurrentUserPermissions(userModel.Id);
             foreach (var item in permissionModels)
             {
                 userDataObject.Permissions.Add(Mapper.Map<Permission, PermissionTransferDataObject>(item));
@@ -240,13 +247,13 @@ namespace Abp.DoNetCore.Application
         public async Task<RESTResult> AddOrUpdateUserInfo(UserInfoDataTransferObject userInfo, Guid userId)
         {
             RESTResult result = new RESTResult { Code = RESTStatus.Failed };
-            var userInfos = await userInfoRepository.GetAllListAsync(item => item.UserId.Equals(userId));
+            var userInfos = await _userInfoRepository.GetAllListAsync(item => item.UserId.Equals(userId));
             if (userInfos.Count <= 0)
             {
                 //TODO:Add user info
                 var userInfoModle = Mapper.Map<UserInfoDataTransferObject, UserInfo>(userInfo);
                 userInfoModle.UserId = userId;
-                await userInfoRepository.InsertAsync(userInfoModle);
+                await _userInfoRepository.InsertAsync(userInfoModle);
                 result.Code = RESTStatus.Success;
                 result.Message = "Create User info successful";
                 return result;
@@ -265,7 +272,7 @@ namespace Abp.DoNetCore.Application
                 userinfoEntity.Address = userInfo.Address;
                 userinfoEntity.BirthDate = userInfo.BirthDate;
                 userinfoEntity.ExtendInfo = userInfo.ExtendInfo;
-                await userInfoRepository.UpdateAsync(userinfoEntity);
+                await _userInfoRepository.UpdateAsync(userinfoEntity);
                 result.Code = RESTStatus.Success;
                 result.Data = userInfo;
             }
@@ -299,7 +306,7 @@ namespace Abp.DoNetCore.Application
             RESTResult result = new RESTResult { Code = RESTStatus.Success };
             if (currentUser.Roles.Where(item => item.Level.Equals(RoleLevelStatus.SupperAdmin)).Count() > 0)
             {
-                var departmentList = await departmentReposiotry.GetAllListAsync(item => item.IsDeleted.Equals(false));
+                var departmentList = await _departmentReposiotry.GetAllListAsync(item => item.IsDeleted.Equals(false));
                 var pagingDepartmentList = departmentList.Skip(pageSize * (pageIndex - 1)).Take(pageSize);
                 result.Data = pagingDepartmentList.Select(item =>
                 {
@@ -311,7 +318,7 @@ namespace Abp.DoNetCore.Application
             {
                 if (currentUser.Department != null)
                 {
-                    var departmentModel = await departmentReposiotry.GetAllListAsync(item => item.Id.Equals(currentUser.Department.Id) && item.IsDeleted.Equals(false));
+                    var departmentModel = await _departmentReposiotry.GetAllListAsync(item => item.Id.Equals(currentUser.Department.Id) && item.IsDeleted.Equals(false));
                     result.Data = departmentModel.Skip(pageSize * (pageIndex - 1)).Take(pageSize);
                 }
                 else
@@ -332,7 +339,7 @@ namespace Abp.DoNetCore.Application
                 var deparmentEntity = Mapper.Map<DepartmentDataTransferObject, Department>(departmentInfo);
                 deparmentEntity.CreateTime = DateTime.Now;
                 deparmentEntity.CreateByUserId = userId;
-                await this.departmentReposiotry.InsertAsync(deparmentEntity);
+                await _departmentReposiotry.InsertAsync(deparmentEntity);
                 result.Code = RESTStatus.Success;
                 result.Message = "Add the department successful";
 
@@ -340,7 +347,7 @@ namespace Abp.DoNetCore.Application
             else
             {
                 //TODO:Update department
-                var departmentEntity = await this.departmentReposiotry.GetAsync(departmentInfo.Id.Value);
+                var departmentEntity = await _departmentReposiotry.GetAsync(departmentInfo.Id.Value);
                 if (departmentEntity.IsDeleted)
                 {
                     result.Message = "The department have been removed";
@@ -352,7 +359,7 @@ namespace Abp.DoNetCore.Application
                     departmentEntity.ModifyByUserId = userId;
                     departmentEntity.ModifyTime = DateTime.Now;
                     departmentEntity.IsDeleted = IsDeleted;
-                    await this.departmentReposiotry.UpdateAsync(departmentEntity);
+                    await _departmentReposiotry.UpdateAsync(departmentEntity);
                     result.Code = RESTStatus.Success;
                     result.Message = "update the department successful";
                 }
@@ -377,15 +384,15 @@ namespace Abp.DoNetCore.Application
                     CreateByUserId = curretnUserId,
                     CreateTime = DateTime.Now
                 };
-                await this.userRoleRepository.InsertAsync(userRoleEntity);
+                await _userRoleRepository.InsertAsync(userRoleEntity);
             }
             else
             {
-                userRoleEntity = await this.userRoleRepository.GetAsync(userRoleId);
+                userRoleEntity = await _userRoleRepository.GetAsync(userRoleId);
                 userRoleEntity.RoleId = roleId;
                 userRoleEntity.ModifyByUserId = curretnUserId;
                 userRoleEntity.ModifyTime = DateTime.Now;
-                await this.userRoleRepository.UpdateAsync(userRoleEntity);
+                await _userRoleRepository.UpdateAsync(userRoleEntity);
             }
             if (userRoleEntity != null)
             {
@@ -405,7 +412,7 @@ namespace Abp.DoNetCore.Application
             {
                 Code = RESTStatus.Success
             };
-            var userDepartments = await this.userDepartmentReposiotry.GetAllListAsync(item => item.UserId.Equals(userId));
+            var userDepartments = await _userDepartmentReposiotry.GetAllListAsync(item => item.UserId.Equals(userId));
             if (userDepartments.Count > 0)
             {
                 //We should not allow the user have two department at the smae time temporarily
@@ -413,7 +420,7 @@ namespace Abp.DoNetCore.Application
                 userDepartmentModel.DepartmentId = departmentId;
                 userDepartmentModel.ModifyByUserId = curretnUserId;
                 userDepartmentModel.ModifyTime = DateTime.Now;
-                await this.userDepartmentReposiotry.UpdateAsync(userDepartmentModel);
+                await _userDepartmentReposiotry.UpdateAsync(userDepartmentModel);
                 result.Message = "Set department successful";
             }
             else
@@ -426,7 +433,7 @@ namespace Abp.DoNetCore.Application
                     CreateByUserId = curretnUserId,
                     CreateTime = DateTime.Now
                 };
-                await this.userDepartmentReposiotry.InsertAsync(userDepartmentEntity);
+                await _userDepartmentReposiotry.InsertAsync(userDepartmentEntity);
                 result.Message = "Set department successful";
             }
             return result;
@@ -441,7 +448,7 @@ namespace Abp.DoNetCore.Application
         public async Task<RESTResult> UpdateRoleAsync(Guid currentUserId, bool isDeleted, RoleDataTransferObject roleInfo)
         {
             RESTResult result = new RESTResult { Code = RESTStatus.Failed };
-            var roleEntities = await this.roleRepository.GetAllListAsync(item => item.Id == roleInfo.Id.Value && item.IsDeleted.Equals(false));
+            var roleEntities = await _roleRepository.GetAllListAsync(item => item.Id == roleInfo.Id.Value && item.IsDeleted.Equals(false));
             if (roleEntities.Count > 0)
             {
                 var roleEntity = roleEntities.First();
@@ -454,7 +461,7 @@ namespace Abp.DoNetCore.Application
                 roleEntity.ModifyTime = DateTime.Now;
                 roleEntity.IsDeleted = isDeleted;
                 roleEntity.Level = RoleLevelStatus.Other;
-                var userModel = await roleRepository.UpdateAsync(roleEntity);
+                var userModel = await _roleRepository.UpdateAsync(roleEntity);
                 result.Code = RESTStatus.Success;
                 result.Data = Mapper.Map<Role, RoleDataTransferObject>(userModel);
                 return result;
@@ -470,7 +477,7 @@ namespace Abp.DoNetCore.Application
             roleNewEntity.Code = userId.ToString();
             roleNewEntity.IsDeleted = false;
             roleNewEntity.Level = RoleLevelStatus.Other;
-            var result = await this.roleRepository.InsertAsync(roleNewEntity);
+            var result = await _roleRepository.InsertAsync(roleNewEntity);
             if (result != null)
             {
                 return true;
@@ -485,13 +492,13 @@ namespace Abp.DoNetCore.Application
             List<RoleDataTransferObject> rolesDataobjects = new List<RoleDataTransferObject>();
             if (currentUser.Roles.Where(item => item.Level.Equals(RoleLevelStatus.SupperAdmin)).Count() > 0)
             {
-                var roles = this.roleRepository.GetAllList(item => item.IsDeleted.Equals(false) && !item.Level.Equals(RoleLevelStatus.SupperAdmin)).Skip(pageSize * (pageIndex - 1)).Take(pageSize);
+                var roles = _roleRepository.GetAllList(item => item.IsDeleted.Equals(false) && !item.Level.Equals(RoleLevelStatus.SupperAdmin)).Skip(pageSize * (pageIndex - 1)).Take(pageSize);
                 foreach (var role in roles)
                 {
                     //TODO:Get role permissions
                     var roleDataObject = Mapper.Map<Role, RoleDataTransferObject>(role);
-                    var rolePermissions = await this.rolePermissionRepository.GetAllListAsync(item => role.Id.Equals(item.RoleId));
-                    var permissions = await this.permissionRepository.GetAllListAsync(item => rolePermissions.Select(c => c.PermissionId).Contains(item.Id));
+                    var rolePermissions = await _rolePermissionRepository.GetAllListAsync(item => role.Id.Equals(item.RoleId));
+                    var permissions = await _permissionRepository.GetAllListAsync(item => rolePermissions.Select(c => c.PermissionId).Contains(item.Id));
                     permissions.ForEach(item => roleDataObject.Permissions.Add(Mapper.Map<Permission, PermissionTransferDataObject>(item)));
                     rolesDataobjects.Add(roleDataObject);
                 }
@@ -500,13 +507,13 @@ namespace Abp.DoNetCore.Application
             else
             {
                 //Get curretnt role under the department.
-                var roles = (await this.GetRolesWithCurrentUser(currentUser.Id.Value, currentUser.Department.Id.Value)).Where(c => c.Level.Equals(RoleLevelStatus.Other)).Skip(pageSize * (pageIndex - 1)).Take(pageSize);
+                var roles = (await GetRolesWithCurrentUser(currentUser.Id.Value, currentUser.Department.Id.Value)).Where(c => c.Level.Equals(RoleLevelStatus.Other)).Skip(pageSize * (pageIndex - 1)).Take(pageSize);
                 foreach (var role in roles)
                 {
                     //TODO:Get role permissions
                     var roleDataObject = Mapper.Map<Role, RoleDataTransferObject>(role);
-                    var rolePermissions = await this.rolePermissionRepository.GetAllListAsync(item => role.Id.Equals(item.RoleId));
-                    var permissions = await this.permissionRepository.GetAllListAsync(item => rolePermissions.Select(c => c.PermissionId).Contains(item.Id));
+                    var rolePermissions = await _rolePermissionRepository.GetAllListAsync(item => role.Id.Equals(item.RoleId));
+                    var permissions = await _permissionRepository.GetAllListAsync(item => rolePermissions.Select(c => c.PermissionId).Contains(item.Id));
                     permissions.ForEach(item => roleDataObject.Permissions.Add(Mapper.Map<Permission, PermissionTransferDataObject>(item)));
                     rolesDataobjects.Add(roleDataObject);
                 }
@@ -518,7 +525,7 @@ namespace Abp.DoNetCore.Application
 
         public async Task<bool> RemoveRoleAsync(Guid roleId)
         {
-            var result = await roleRepository.UpdateAsync(roleId, item => { item.IsDeleted = true; return roleRepository.UpdateAsync(item); });
+            var result = await _roleRepository.UpdateAsync(roleId, item => { item.IsDeleted = true; return _roleRepository.UpdateAsync(item); });
             if (result != null)
             {
                 return true;
@@ -540,23 +547,23 @@ namespace Abp.DoNetCore.Application
                 {
                     permissionInfo.PermissionData.Id = Guid.NewGuid();
                     permissionInfo.PermissionData.ParentId = permissionInfo.PermissionData.ParentId != null ? permissionInfo.PermissionData.ParentId : Guid.Empty;
-                    permissionEntity.DataXml = serializer.Serialize(permissionInfo.PermissionData);
+                    permissionEntity.DataXml = _serializer.Serialize(permissionInfo.PermissionData);
                 }
                 permissionEntity.CreateTime = DateTime.Now;
                 permissionEntity.CreateByUserId = currentUserId;
-                result.Data = await this.permissionRepository.InsertAsync(permissionEntity);
+                result.Data = await _permissionRepository.InsertAsync(permissionEntity);
 
             }
             else
             {
                 //TODO:Update department
-                var permissionEntity = await this.permissionRepository.GetAsync(permissionInfo.Id.Value);
+                var permissionEntity = await _permissionRepository.GetAsync(permissionInfo.Id.Value);
                 permissionEntity.Name = permissionInfo.Name;
                 permissionEntity.ModifyByUserId = currentUserId;
                 permissionEntity.ModifyTime = DateTime.Now;
                 permissionEntity.IsDeleted = IsDeleted;
-                permissionEntity.DataXml = permissionInfo.PermissionData != null ? serializer.Serialize(permissionInfo.PermissionData) : permissionEntity.DataXml;
-                result.Data = await this.permissionRepository.UpdateAsync(permissionEntity);
+                permissionEntity.DataXml = permissionInfo.PermissionData != null ? _serializer.Serialize(permissionInfo.PermissionData) : permissionEntity.DataXml;
+                result.Data = await _permissionRepository.UpdateAsync(permissionEntity);
             }
 
             if (result.Data != null)
@@ -571,12 +578,12 @@ namespace Abp.DoNetCore.Application
         public Task<RESTResult> GetPermissionByPagingAsync(Guid currentUserId, int pageIndex, int pageSize)
         {
             RESTResult result = new RESTResult { Code = RESTStatus.Success };
-            var permissionLists = this.permissionRepository.GetAllList(item => item.IsDeleted.Equals(false)).Skip(pageSize * (pageIndex - 1)).Take(pageSize);
+            var permissionLists = _permissionRepository.GetAllList(item => item.IsDeleted.Equals(false)).Skip(pageSize * (pageIndex - 1)).Take(pageSize);
             List<PermissionTransferDataObject> permissionDOTList = new List<PermissionTransferDataObject>();
             foreach (var item in permissionLists)
             {
                 var permissionDTO = Mapper.Map<Permission, PermissionTransferDataObject>(item);
-                permissionDTO.PermissionData = string.IsNullOrEmpty(item.DataXml) ? null : serializer.Deserialize<PageMenu>(item.DataXml);
+                permissionDTO.PermissionData = string.IsNullOrEmpty(item.DataXml) ? null : _serializer.Deserialize<PageMenu>(item.DataXml);
                 permissionDOTList.Add(permissionDTO);
             }
             result.Data = permissionDOTList;
@@ -598,11 +605,11 @@ namespace Abp.DoNetCore.Application
                 return result;
             }
             //TOOD:Get the current role permission
-            var rolePermissions = await rolePermissionRepository.GetAllListAsync(item => item.RoleId.Equals(rolePermissionInfo.RoleId));
+            var rolePermissions = await _rolePermissionRepository.GetAllListAsync(item => item.RoleId.Equals(rolePermissionInfo.RoleId));
             //TODO: remove the exist role permission            
             foreach (var item in rolePermissions)
             {
-                await this.rolePermissionRepository.DeleteAsync(item);
+                await _rolePermissionRepository.DeleteAsync(item);
             }
             RolePermission rolePermissionEntity;
             foreach (var permissionId in rolePermissionInfo.PermissionIds)
@@ -615,7 +622,7 @@ namespace Abp.DoNetCore.Application
                     CreateByUserId = currentUserId,
                     CreateTime = DateTime.Now
                 };
-                await rolePermissionRepository.InsertAsync(rolePermissionEntity);
+                await _rolePermissionRepository.InsertAsync(rolePermissionEntity);
             }
             result.Code = RESTStatus.Success;
             result.Message = "Set permission to role successful";
@@ -625,17 +632,17 @@ namespace Abp.DoNetCore.Application
         public async Task<RESTResult> GetMenusToCurrentUser(Guid userId)
         {
             RESTResult result = new RESTResult { Code = RESTStatus.Success };
-            var permissions = await this.GetCurrentUserPermissions(userId);
+            var permissions = await GetCurrentUserPermissions(userId);
             List<PageMenu> pages = new List<PageMenu>();
             foreach (var item in permissions)
             {
                 if (!string.IsNullOrEmpty(item.DataXml))
                 {
-                    pages.Add(serializer.Deserialize<PageMenu>(item.DataXml));
+                    pages.Add(_serializer.Deserialize<PageMenu>(item.DataXml));
                 }
             }
-            List<PageDataObject> pageDTOs = new List<PageDataObject>();
-            this.RecursivePage(pages.OrderBy(c => c.ParentId).ToList(), pageDTOs, true);
+            List<PageDataTransferObject> pageDTOs = new List<PageDataTransferObject>();
+            RecursivePage(pages.OrderBy(c => c.ParentId).ToList(), pageDTOs, true);
             result.Data = pageDTOs;
             return result;
         }
@@ -646,7 +653,7 @@ namespace Abp.DoNetCore.Application
         /// <param name="pagemenus"></param>
         /// <param name="childs"></param>
         /// <param name="isRoot"></param>
-        private void RecursivePage(List<PageMenu> pagemenus, List<PageDataObject> childs, bool isRoot)
+        private void RecursivePage(List<PageMenu> pagemenus, List<PageDataTransferObject> childs, bool isRoot)
         {
             if (isRoot)
             {
@@ -662,7 +669,7 @@ namespace Abp.DoNetCore.Application
                             {
                                 continue;
                             }
-                            childs.Add(Mapper.Map<PageMenu, PageDataObject>(item));
+                            childs.Add(Mapper.Map<PageMenu, PageDataTransferObject>(item));
                         }
                     }
                     RecursivePage(pagemenus, childs, false);
@@ -678,7 +685,7 @@ namespace Abp.DoNetCore.Application
                         //TODO:add the child item;
                         foreach (var childItem in childItems)
                         {
-                            item.Child.Add(Mapper.Map<PageMenu, PageDataObject>(childItem));
+                            item.Child.Add(Mapper.Map<PageMenu, PageDataTransferObject>(childItem));
                             RecursivePage(pagemenus, item.Child, false);
                         }
                     }
@@ -692,7 +699,7 @@ namespace Abp.DoNetCore.Application
         //[UnitOfWork(IsDisabled = true)]
         private async Task<User> GetUserByAccountName(string accountName)
         {
-            var userEntities = await this.userRepository.GetAllListAsync(item => item.AccountEmail == accountName || item.AccountCode == accountName || item.AccountPhone == accountName);
+            var userEntities = await _userRepository.GetAllListAsync(item => item.AccountEmail == accountName || item.AccountCode == accountName || item.AccountPhone == accountName);
             if (userEntities.Count < 0)
             {
                 throw new ArgumentException($"The user {accountName} doesn's exist");
@@ -704,36 +711,36 @@ namespace Abp.DoNetCore.Application
         [UnitOfWork(IsDisabled = true)]
         private async Task<IEnumerable<Role>> GetRolesWithCurrentUser(Guid userId, Guid departmentId)
         {
-            var userRoles = await this.userRoleRepository.GetAllListAsync(item => item.UserId.Equals(userId));
+            var userRoles = await _userRoleRepository.GetAllListAsync(item => item.UserId.Equals(userId));
             var roleIds = userRoles.Select(item => item.RoleId);
             if (!Guid.Empty.Equals(departmentId))
             {
                 //TODO:Get department roles
-                var departmentRoles = await this.roleRepository.GetAllListAsync(item => item.DepartmentId.Equals(departmentId) && item.IsDeleted.Equals(false) || item.DepartmentId.Equals(Guid.Empty) && item.Level != RoleLevelStatus.SupperAdmin && item.IsDeleted.Equals(false));
+                var departmentRoles = await _roleRepository.GetAllListAsync(item => item.DepartmentId.Equals(departmentId) && item.IsDeleted.Equals(false) || item.DepartmentId.Equals(Guid.Empty) && item.Level != RoleLevelStatus.SupperAdmin && item.IsDeleted.Equals(false));
                 return departmentRoles;
 
             }
-            var roles = await this.roleRepository.GetAllListAsync(item => roleIds.Contains(item.Id) && item.IsDeleted.Equals(false));
+            var roles = await _roleRepository.GetAllListAsync(item => roleIds.Contains(item.Id) && item.IsDeleted.Equals(false));
             return roles;
         }
 
         private async Task<Department> GetCurrentUserDepartment(Guid userId)
         {
-            var userDepartments = await this.userDepartmentReposiotry.GetAllListAsync(item => item.UserId.Equals(userId));
+            var userDepartments = await _userDepartmentReposiotry.GetAllListAsync(item => item.UserId.Equals(userId));
             if (userDepartments.Count > 0)
             {
-                return await this.departmentReposiotry.GetAsync(userDepartments.First().DepartmentId);
+                return await _departmentReposiotry.GetAsync(userDepartments.First().DepartmentId);
             }
             return null;
         }
 
         private async Task<IEnumerable<Permission>> GetCurrentUserPermissions(Guid userId)
         {
-            var roleIds = (await this.userRoleRepository.GetAllListAsync(item => item.UserId.Equals(userId))).Select(item => item.RoleId);
+            var roleIds = (await _userRoleRepository.GetAllListAsync(item => item.UserId.Equals(userId))).Select(item => item.RoleId);
 
-            var permissionId = (await this.rolePermissionRepository.GetAllListAsync(item => roleIds.Contains(item.RoleId))).Select(item => item.PermissionId);
+            var permissionId = (await _rolePermissionRepository.GetAllListAsync(item => roleIds.Contains(item.RoleId))).Select(item => item.PermissionId);
 
-            var permissions = await this.permissionRepository.GetAllListAsync(item => permissionId.Contains(item.Id));
+            var permissions = await _permissionRepository.GetAllListAsync(item => permissionId.Contains(item.Id));
 
             return permissions;
         }
@@ -748,12 +755,12 @@ namespace Abp.DoNetCore.Application
             if (departmentId != null && !departmentId.Equals(Guid.Empty))
             {
                 //TODO: we are allow one user have a one department, then we will limit the user to add multiple department. 
-                var userDepartmentEntities = await userDepartmentReposiotry.GetAllListAsync(item => item.UserId.Equals(userId) && item.DepartmentId.Equals(departmentId.Value));
+                var userDepartmentEntities = await _userDepartmentReposiotry.GetAllListAsync(item => item.UserId.Equals(userId) && item.DepartmentId.Equals(departmentId.Value));
                 if (userDepartmentEntities.Count > 0)
                 {
                     var userDepartmentEntity = userDepartmentEntities.First();
                     userDepartmentEntity.DepartmentId = departmentId.Value;
-                    await userDepartmentReposiotry.UpdateAsync(userDepartmentEntity);
+                    await _userDepartmentReposiotry.UpdateAsync(userDepartmentEntity);
                 }
                 else
                 {
@@ -764,7 +771,7 @@ namespace Abp.DoNetCore.Application
                         DepartmentId = departmentId.Value,
                         UserId = userId
                     };
-                    await this.userDepartmentReposiotry.InsertAsync(userDepartMap);
+                    await _userDepartmentReposiotry.InsertAsync(userDepartMap);
                 }
 
             }
@@ -772,7 +779,7 @@ namespace Abp.DoNetCore.Application
 
         private async Task RemoveBeforeUserRole(Guid userId)
         {
-            await this.userRoleRepository.DeleteAsync(item => item.UserId.Equals(userId));
+            await _userRoleRepository.DeleteAsync(item => item.UserId.Equals(userId));
         }
         private Task SetUserAndRoleMapAsync(Guid currentUserId, Guid userId, List<Guid?> roleIds)
         {
@@ -796,7 +803,7 @@ namespace Abp.DoNetCore.Application
                     ModifyByUserId = currentUserId,
                     ModifyTime = DateTime.UtcNow
                 };
-                this.userRoleRepository.Insert(userRoleMap);
+                _userRoleRepository.Insert(userRoleMap);
             }
             return Task.CompletedTask;
         }

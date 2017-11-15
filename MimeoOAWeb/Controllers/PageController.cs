@@ -15,18 +15,18 @@ namespace MimeoOAWeb.Controllers
     [Authorize(Policy = MimeoOAPolicyType.PolicyName)]
     public class PageController : BaseController
     {
-        private readonly IUserAppService userAppService;
+        private readonly IUserAppService _userAppService;
 
         public PageController(IUserAppService userAppService)
         {
-            this.userAppService = userAppService;
+            _userAppService = userAppService;
         }
 
         [HttpGet("menu")]
         [PermissionFilter(PermissionCondition.And, SystemPermission.Sys_Write, SystemPermission.Sys_Read)]
         public async Task<IActionResult> GetPageMenus()
         {
-            return Ok(await this.userAppService.GetMenusToCurrentUser(CurrentUser.Id.Value));
+            return Ok(await _userAppService.GetMenusToCurrentUser(CurrentUser.Id.Value));
         }
     }
 }

@@ -20,6 +20,7 @@ namespace MimeoOAWeb.Core.MimeoDBContext
         public DbSet<RolePermission> mo_role_permission { get; set; }
         public DbSet<Department> mo_department { get; set; }
         public DbSet<UserDepartment> mo_user_department { get; set; }
+        public DbSet<DigitalAssetItem> mo_digitalasset_item { get; set; }
         public MimeoOAContext(DbContextOptions<MimeoOAContext> options):base(options)
         {
         }

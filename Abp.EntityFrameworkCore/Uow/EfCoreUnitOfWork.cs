@@ -10,12 +10,12 @@ namespace Abp.EntityFrameworkCore.Uow
 {
     public class EfCoreUnitOfWork : UnitOfWorkBase
     {
-        private readonly IDbContextResolver dbContextResolver;
+        private readonly IDbContextResolver _dbContextResolver;
         protected IDictionary<string, DbContext> ActiveDbContexts { get; private set; }
         protected IDbContextTransaction SharedTransaction;
         public EfCoreUnitOfWork(IUnitOfWorkDefaultOptions defaultOptions, IDbContextResolver dbContextResolver) : base(defaultOptions)
         {
-            this.dbContextResolver = dbContextResolver;
+            this._dbContextResolver = dbContextResolver;
             ActiveDbContexts = new Dictionary<string, DbContext>();
             Completed += EfCoreUnitOfWork_Completed;
             Disposed += EfCoreUnitOfWork_Disposed;
@@ -36,7 +36,7 @@ namespace Abp.EntityFrameworkCore.Uow
             //{
             //    SaveChangesInDbContext(dbContext);
             //}
-            SaveChangesInDbContext(this.dbContextResolver.Resolve(DBSelector.Master));
+            SaveChangesInDbContext(this._dbContextResolver.Resolve(DBSelector.Master));
         }
 
         public override async Task SaveChangesAsync()
@@ -46,7 +46,7 @@ namespace Abp.EntityFrameworkCore.Uow
             //    await SaveChangesInDbContextAsync(dbContext);
             //}
 
-            await SaveChangesInDbContextAsync(this.dbContextResolver.Resolve(DBSelector.Master));
+            await SaveChangesInDbContextAsync(this._dbContextResolver.Resolve(DBSelector.Master));
         }
 
         protected override void BeginUow()
@@ -54,7 +54,7 @@ namespace Abp.EntityFrameworkCore.Uow
             //GetOrCreateDbcontext<DbContext>();
             if (Options.IsTransactional == true)
             {
-                BeginTransaction(this.dbContextResolver.Resolve(DBSelector.Master));
+                BeginTransaction(this._dbContextResolver.Resolve(DBSelector.Master));
             }
             base.BeginUow();
         }
@@ -69,7 +69,7 @@ namespace Abp.EntityFrameworkCore.Uow
             if (!ActiveDbContexts.TryGetValue(dbContextKey, out dbContext))
             {
 
-                dbContext = this.dbContextResolver.Resolve(DBSelector.Master);
+                dbContext = this._dbContextResolver.Resolve(DBSelector.Master);
                 if (Options.IsTransactional == true)
                 {
                     BeginTransaction(dbContext);
@@ -110,7 +110,7 @@ namespace Abp.EntityFrameworkCore.Uow
             //{
             //    dbContext.Database.CommitTransaction();
             //}
-            var dbContext = this.dbContextResolver.Resolve(DBSelector.Master);
+            var dbContext = this._dbContextResolver.Resolve(DBSelector.Master);
             dbContext.Database.CommitTransaction();
         }
         protected virtual void SaveChangesInDbContext(DbContext dbContext)

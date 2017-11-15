@@ -12,10 +12,10 @@ namespace Abp.EntityFrameworkCore.Repositories
     public class EfCoreRepositoryBaseOfEntity<EFEntity> : AbpRepositoryBaseOfEntity<EFEntity>, IRepository<EFEntity>
         where EFEntity : class, IEntity<Guid>
     {
-        public virtual DbContext Context { get { return _dbContextProvider.Resolve(dbSelector); } }
+        public virtual DbContext Context { get { return _dbContextProvider.Resolve(_dbSelector); } }
         public virtual DbSet<EFEntity> Table { get { return Context.Set<EFEntity>(); } }
         private readonly IDbContextResolver _dbContextProvider;
-        private DBSelector dbSelector { get; set; }
+        private DBSelector _dbSelector { get; set; }
         public EfCoreRepositoryBaseOfEntity(IDbContextResolver dbContextProvider)
         {
             _dbContextProvider = dbContextProvider;
@@ -23,26 +23,27 @@ namespace Abp.EntityFrameworkCore.Repositories
 
         public override IQueryable<EFEntity> GetAll()
         {
-            //Must Have the slave database, it should be work for this.
-            dbSelector = DBSelector.Slave;
+            //Have to set the slave database, it should be work for this.
+            //NOTE:need to be optimzied
+            _dbSelector = DBSelector.Slave;
             return Table;
         }
 
         public override EFEntity Insert(EFEntity entity)
         {
-            dbSelector = DBSelector.Master;
+            _dbSelector = DBSelector.Master;
             return Table.Add(entity).Entity;
         }
 
         public override EFEntity Update(EFEntity entity)
         {
-            dbSelector = DBSelector.Master;
+            _dbSelector = DBSelector.Master;
             return Table.Update(entity).Entity;
         }
 
         public override void Delete(EFEntity entity)
         {
-            dbSelector = DBSelector.Master;
+            _dbSelector = DBSelector.Master;
             Table.Remove(entity);
         }
 

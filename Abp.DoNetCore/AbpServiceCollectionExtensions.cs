@@ -13,6 +13,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Abp.DoNetCore.Handlers;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 
 namespace Abp.DoNetCore
 {
@@ -22,13 +23,40 @@ namespace Abp.DoNetCore
         private readonly static SymmetricSecurityKey _signingKey = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(SecretKey));
         public static IServiceProvider AddAbp<TSartModule>(this IServiceCollection services, IConfigurationRoot configuration) where TSartModule : AbpModule
         {
+            //TODO:Set jwt options
+            var jwtAppSettingOptions = configuration.GetSection(nameof(JwtIssuerOptions));
+            var tokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidIssuer = jwtAppSettingOptions[nameof(JwtIssuerOptions.Issuer)],
 
+                ValidateAudience = true,
+                ValidAudience = jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)],
+
+                ValidateIssuerSigningKey = true,
+                IssuerSigningKey = _signingKey,
+
+                RequireExpirationTime = true,
+                ValidateLifetime = true,
+
+                ClockSkew = TimeSpan.Zero
+            };
+            //Add the authentication
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(options =>
+            {
+                options.TokenValidationParameters = tokenValidationParameters;
+                options.Audience= jwtAppSettingOptions[nameof(JwtIssuerOptions.Audience)];
+                options.ClaimsIssuer= jwtAppSettingOptions[nameof(JwtIssuerOptions.Issuer)];
+                options.SaveToken = true;
+
+            });
             //Add the authoriaztion 
-
-            //services.AddAuthorization(options => options.AddPolicy("MimeoOA", policy => policy.RequireClaim("MimeoUser", "test")));
             services.AddAuthorization(options => options.AddPolicy(MimeoOAPolicyType.PolicyName, policy => policy.Requirements.Add(new JwtUserAhtorizationRequirement())));
             services.AddSingleton<IAuthorizationHandler, AbpAuthorizationHandler>();
-            var jwtAppSettingOptions = configuration.GetSection(nameof(JwtIssuerOptions));
+
             services.Configure<JwtIssuerOptions>(options =>
             {
                 options.Issuer = jwtAppSettingOptions[nameof(JwtIssuerOptions.Issuer)];
@@ -49,7 +77,7 @@ namespace Abp.DoNetCore
         private static AbpBootstrapper AddAbpBootstrapper<TStartModule>(IServiceCollection services, IIocManager iocManager) where TStartModule : AbpModule
         {
             var abpBootstrapper = AbpBootstrapper.Create<TStartModule>(iocManager);
-            services.AddSingleton(abpBootstrapper);
+            //services.AddSingleton(abpBootstrapper);
             abpBootstrapper.Initialize();
             return abpBootstrapper;
         }
